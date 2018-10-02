@@ -1,5 +1,5 @@
 {
-  "name": "nuwber/rabbitevents",
+  "name": "seivad/rabbitevents",
   "description": "Laravel back-to-back broadcasting events. It uses RabbitMQ as the transport.",
   "keywords": ["queue", "laravel", "rabbitmq", "events"],
   "type": "library",
@@ -8,6 +8,10 @@
     {
       "name": "Eugene Kirdzei",
       "email": "e.ki@nuwber.com"
+    },
+    {
+     "name": "Mick Davies",
+      "email": "mick@5150studios.com.au"
     }
   ],
   "require": {
@@ -28,7 +32,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Nuwber\\Events\\": "src/"
+      "Seivad\\Events\\": "src/"
     },
     "files": [
       "src/helpers.php"
@@ -36,7 +40,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Nuwber\\Events\\Tests\\": "tests/"
+      "Seivad\\Events\\Tests\\": "tests/"
     }
   },
   "extra": {
