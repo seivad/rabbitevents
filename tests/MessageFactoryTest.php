@@ -1,12 +1,12 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Seivad\Events\Tests;
 
-use Enqueue\AmqpLib\AmqpContext;
-use Interop\Amqp\Impl\AmqpMessage;
-use Interop\Amqp\Impl\AmqpTopic;
-use Nuwber\Events\MessageFactory;
 use PHPUnit\Framework\TestCase;
+use Enqueue\AmqpLib\AmqpContext;
+use Interop\Amqp\Impl\AmqpTopic;
+use Seivad\Events\MessageFactory;
+use Interop\Amqp\Impl\AmqpMessage;
 
 class MessageFactoryTest extends TestCase
 {

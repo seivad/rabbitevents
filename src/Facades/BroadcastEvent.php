@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Facades;
+namespace Seivad\Events\Facades;
 
 use Illuminate\Support\Facades\Facade;
 

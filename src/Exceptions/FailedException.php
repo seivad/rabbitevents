@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Exceptions;
+namespace Seivad\Events\Exceptions;
 
 class FailedException extends \RuntimeException
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events\Logging;
+namespace Seivad\Events\Logging;
 
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
@@ -8,10 +8,11 @@ use Illuminate\Queue\Events\JobProcessing;
 
 abstract class Writer
 {
+    const STATUS_FAILED = 'Failed';
+
+    const STATUS_PROCESSED = 'Processed';
 
     const STATUS_PROCESSING = 'Processing';
-    const STATUS_PROCESSED = 'Processed';
-    const STATUS_FAILED = 'Failed';
 
     /**
      * @param JobProcessing | JobProcessed | JobFailed $event

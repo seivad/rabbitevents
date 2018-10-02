@@ -1,8 +1,8 @@
 <?php
 
-namespace Nuwber\Events\Logging;
+namespace Seivad\Events\Logging;
 
-use Nuwber\Events\Job;
+use Seivad\Events\Job;
 
 class General extends Writer
 {
@@ -11,6 +11,9 @@ class General extends Writer
      */
     protected $laravel;
 
+    /**
+     * @param $laravel
+     */
     public function __construct($laravel)
     {
         $this->laravel = $laravel;
@@ -23,12 +26,17 @@ class General extends Writer
     {
         $status = $this->getStatus($event);
         $level = $status != self::STATUS_FAILED ?
-            $this->laravel['config']->get('queue.connections.interop.logging.level', 'info') :
-            'error';
+        $this->laravel['config']->get('queue.connections.interop.logging.level', 'info') :
+        'error';
 
         $this->write($event->job, $status, $level);
     }
 
+    /**
+     * @param Job $job
+     * @param $status
+     * @param $level
+     */
     protected function write(Job $job, $status, $level)
     {
         $this->laravel['log']->log($level, sprintf('Job "%s" %s', $job->getName(), $status), [

@@ -1,56 +1,71 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Seivad\Events;
 
 use Exception;
-use Illuminate\Container\Container;
-use Illuminate\Contracts\Debug\ExceptionHandler;
+use Throwable;
+use Interop\Queue\PsrContext;
+use Interop\Queue\PsrMessage;
+use Interop\Queue\PsrConsumer;
+use Illuminate\Queue\FailingJob;
 use Illuminate\Events\Dispatcher;
-use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Container\Container;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
-use Illuminate\Queue\FailingJob;
+use Seivad\Events\Exceptions\FailedException;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Seivad\Events\Dispatcher as BroadcastEvents;
+use Illuminate\Queue\Events\JobExceptionOccurred;
 use Illuminate\Queue\MaxAttemptsExceededException;
-use Interop\Queue\PsrConsumer;
-use Interop\Queue\PsrContext;
-use Interop\Queue\PsrMessage;
-use Nuwber\Events\Dispatcher as BroadcastEvents;
-use Nuwber\Events\Exceptions\FailedException;
 use Symfony\Component\Debug\Exception\FatalThrowableError;
-use Throwable;
 
 class MessageProcessor
 {
     /**
-     * @var Container
+     * @var \Seivad\Events\Dispatcher
      */
-    private $container;
+    private $broadcastEvents;
+
     /**
      * @var  string
      */
     private $connectionName;
+
     /**
-     * @var \Illuminate\Events\Dispatcher
+     * @var Container
      */
-    private $events;
-    /**
-     * @var ProcessingOptions
-     */
-    private $options;
+    private $container;
+
     /**
      * @var PsrContext
      */
     private $context;
+
     /**
-     * @var \Nuwber\Events\Dispatcher
+     * @var \Illuminate\Events\Dispatcher
      */
-    private $broadcastEvents;
+    private $events;
+
     /**
      * @var ExceptionHandler
      */
     private $exceptions;
 
+    /**
+     * @var ProcessingOptions
+     */
+    private $options;
+
+    /**
+     * @param Container $container
+     * @param PsrContext $context
+     * @param Dispatcher $events
+     * @param BroadcastEvents $broadcastEvents
+     * @param ProcessingOptions $options
+     * @param string $connectionName
+     * @param ExceptionHandler $exceptions
+     */
     public function __construct(
         Container $container,
         PsrContext $context,
@@ -99,94 +114,6 @@ class MessageProcessor
     }
 
     /**
-     * Build array of Listeners
-     *
-     * @param PsrConsumer $consumer
-     * @param PsrMessage $payload
-     * @return Job[]
-     */
-    protected function makeJobs(PsrConsumer $consumer, PsrMessage $payload)
-    {
-        $event = $payload->getRoutingKey();
-
-        foreach ($this->broadcastEvents->getListeners($event) as $name => $listeners) {
-            foreach ($listeners as $listener) {
-                yield new Job(
-                    $this->container,
-                    $this->context,
-                    $consumer,
-                    $payload,
-                    $this->connectionName,
-                    $event,
-                    $name,
-                    $listener
-                );
-            }
-        }
-    }
-
-    /**
-     * Process concrete listener
-     *
-     * @param Job $job
-     * @return array|null
-     * @throws \Exception
-     */
-    protected function processJob(Job $job)
-    {
-        try {
-            $this->raiseBeforeEvent($job);
-
-            $this->markJobAsFailedIfAlreadyExceedsMaxAttempts($job, $this->options->maxTries);
-
-            $response = $job->fire();
-
-            $this->raiseAfterEvent($job);
-
-            return $response;
-        } catch (Exception $e) {
-            $this->handleJobException($job, $e);
-        } catch (Throwable $e) {
-            $this->handleJobException($job, new FatalThrowableError($e));
-        }
-    }
-
-    /**
-     * Raise the before queue job event.
-     *
-     * @param  Job $job
-     * @return void
-     */
-    protected function raiseBeforeEvent(Job $job)
-    {
-        $this->events->dispatch(new JobProcessing($this->connectionName, $job));
-    }
-
-    /**
-     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
-     *
-     * This will likely be because the job previously exceeded a timeout.
-     *
-     * @param  Job $job
-     * @param  int $maxTries
-     * @return void
-     *
-     * @throws \Exception
-     */
-    protected function markJobAsFailedIfAlreadyExceedsMaxAttempts(Job $job, $maxTries)
-    {
-        if ($maxTries === 0 || $job->attempts() <= $maxTries) {
-            return;
-        }
-
-        $this->failJob($job, $e = new MaxAttemptsExceededException(
-            'A queued job has been attempted too many times or run too long. The job may have previously timed out.'
-        ));
-
-        throw $e;
-    }
-
-    /**
      * Mark the given job as failed and raise the relevant event.
      *
      * @param  Job $job
@@ -196,17 +123,6 @@ class MessageProcessor
     protected function failJob(Job $job, $e)
     {
         FailingJob::handle($this->connectionName, $job, $e);
-    }
-
-    /**
-     * Raise the after queue job event.
-     *
-     * @param  Job $job
-     * @return void
-     */
-    protected function raiseAfterEvent(Job $job)
-    {
-        $this->events->dispatch(new JobProcessed($this->connectionName, $job));
     }
 
     /**
@@ -250,6 +166,57 @@ class MessageProcessor
     }
 
     /**
+     * Build array of Listeners
+     *
+     * @param PsrConsumer $consumer
+     * @param PsrMessage $payload
+     * @return Job[]
+     */
+    protected function makeJobs(PsrConsumer $consumer, PsrMessage $payload)
+    {
+        $event = $payload->getRoutingKey();
+
+        foreach ($this->broadcastEvents->getListeners($event) as $name => $listeners) {
+            foreach ($listeners as $listener) {
+                yield new Job(
+                    $this->container,
+                    $this->context,
+                    $consumer,
+                    $payload,
+                    $this->connectionName,
+                    $event,
+                    $name,
+                    $listener
+                );
+            }
+        }
+    }
+
+    /**
+     * Mark the given job as failed if it has exceeded the maximum allowed attempts.
+     *
+     * This will likely be because the job previously exceeded a timeout.
+     *
+     * @param  Job $job
+     * @param  int $maxTries
+     * @return void
+     *
+     * @throws \Exception
+     */
+    protected function markJobAsFailedIfAlreadyExceedsMaxAttempts(Job $job, $maxTries)
+    {
+        if ($maxTries === 0 || $job->attempts() <= $maxTries) {
+            return;
+        }
+
+        $this->failJob($job, $e = new MaxAttemptsExceededException(
+            'A queued job has been attempted too many times or run too long. The job may have previously timed out.'
+        ));
+
+        throw $e;
+    }
+
+    /**
      * Mark the given job as failed if it has exceeded the maximum allowed attempts.
      *
      * @param  Job $job
@@ -262,6 +229,54 @@ class MessageProcessor
         if ($maxTries > 0 && $job->attempts() >= $maxTries) {
             $this->failJob($job, $exception);
         }
+    }
+
+    /**
+     * Process concrete listener
+     *
+     * @param Job $job
+     * @return array|null
+     * @throws \Exception
+     */
+    protected function processJob(Job $job)
+    {
+        try {
+            $this->raiseBeforeEvent($job);
+
+            $this->markJobAsFailedIfAlreadyExceedsMaxAttempts($job, $this->options->maxTries);
+
+            $response = $job->fire();
+
+            $this->raiseAfterEvent($job);
+
+            return $response;
+        } catch (Exception $e) {
+            $this->handleJobException($job, $e);
+        } catch (Throwable $e) {
+            $this->handleJobException($job, new FatalThrowableError($e));
+        }
+    }
+
+    /**
+     * Raise the after queue job event.
+     *
+     * @param  Job $job
+     * @return void
+     */
+    protected function raiseAfterEvent(Job $job)
+    {
+        $this->events->dispatch(new JobProcessed($this->connectionName, $job));
+    }
+
+    /**
+     * Raise the before queue job event.
+     *
+     * @param  Job $job
+     * @return void
+     */
+    protected function raiseBeforeEvent(Job $job)
+    {
+        $this->events->dispatch(new JobProcessing($this->connectionName, $job));
     }
 
     /**

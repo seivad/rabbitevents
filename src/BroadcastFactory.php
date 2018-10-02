@@ -1,23 +1,27 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Seivad\Events;
 
-use Interop\Amqp\Impl\AmqpMessage;
-use Interop\Queue\PsrContext;
 use Interop\Queue\PsrTopic;
+use Interop\Queue\PsrContext;
+use Interop\Amqp\Impl\AmqpMessage;
 
 class BroadcastFactory
 {
+    /**
+     * @var \Enqueue\AmqpLib\AmqpProducer
+     */
+    private $producer;
+
     /**
      * @var PsrTopic
      */
     private $topic;
 
     /**
-     * @var \Enqueue\AmqpLib\AmqpProducer
+     * @param PsrContext $context
+     * @param PsrTopic $topic
      */
-    private $producer;
-
     public function __construct(PsrContext $context, PsrTopic $topic)
     {
         $this->topic = $topic;

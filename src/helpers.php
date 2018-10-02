@@ -1,10 +1,14 @@
 <?php
 
-use Nuwber\Events\BroadcastFactory;
-use Nuwber\Events\MessageFactory;
+use Seivad\Events\MessageFactory;
+use Seivad\Events\BroadcastFactory;
 
 if (!function_exists('fire')) {
 
+    /**
+     * @param string $event
+     * @param array $payload
+     */
     function fire(string $event, array $payload)
     {
         app(BroadcastFactory::class)->send(

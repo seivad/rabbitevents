@@ -1,16 +1,15 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Seivad\Events\Tests;
 
-use Enqueue\AmqpLib\AmqpConsumer;
 use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\Impl\AmqpQueue;
 use Interop\Amqp\Impl\AmqpTopic;
-use Nuwber\Events\ConsumerFactory;
+use Enqueue\AmqpLib\AmqpConsumer;
+use Seivad\Events\ConsumerFactory;
 
 class ConsumerFactoryTest extends TestCase
 {
-
     public function testMake()
     {
         $queue = new AmqpQueue('');

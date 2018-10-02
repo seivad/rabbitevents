@@ -1,28 +1,40 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Seivad\Events;
 
-use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
-use Interop\Queue\PsrConsumer;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrMessage;
+use Interop\Queue\PsrConsumer;
+use Illuminate\Container\Container;
 
 class Job extends \Enqueue\LaravelQueue\Job
 {
     /**
-     * @var \Callback
-     */
-    private $listener;
-    /**
      * @var PsrConsumer
      */
     private $event;
+
+    /**
+     * @var \Callback
+     */
+    private $listener;
+
     /**
      * @var
      */
     private $listenerName;
 
+    /**
+     * @param Container $container
+     * @param PsrContext $context
+     * @param PsrConsumer $consumer
+     * @param PsrMessage $message
+     * @param string $connectionName
+     * @param string $event
+     * @param $listenerName
+     * @param $callback
+     */
     public function __construct(
         Container $container,
         PsrContext $context,
@@ -41,6 +53,17 @@ class Job extends \Enqueue\LaravelQueue\Job
         $this->listener = $callback;
     }
 
+    /**
+     * @param $exception
+     */
+    public function failed($exception)
+    {
+        //TODO To think how can we use this method
+    }
+
+    /**
+     * @return mixed
+     */
     public function fire()
     {
         $callback = $this->listener();
@@ -48,18 +71,16 @@ class Job extends \Enqueue\LaravelQueue\Job
         return $callback($this->event, Arr::wrap($this->payload()));
     }
 
+    public function getName()
+    {
+        return "$this->connectionName: ".$this->event.":$this->listenerName";
+    }
+
+    /**
+     * @return mixed
+     */
     public function listener()
     {
         return $this->listener;
-    }
-
-    public function getName()
-    {
-        return "$this->connectionName: " . $this->event . ":$this->listenerName";
-    }
-
-    public function failed($exception)
-    {
-        //TODO To think how can we use this method
     }
 }

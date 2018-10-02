@@ -1,19 +1,25 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Seivad\Events;
 
+use Interop\Amqp\AmqpTopic;
+use Interop\Queue\PsrTopic;
+use Interop\Queue\PsrContext;
+use Seivad\Events\Console\ListenCommand;
+use Seivad\Events\Facades\BroadcastEvent;
 use Illuminate\Contracts\Queue\Factory as QueueFactoryContract;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
-use Interop\Amqp\AmqpTopic;
-use Interop\Queue\PsrContext;
-use Interop\Queue\PsrTopic;
-use Nuwber\Events\Console\ListenCommand;
-use Nuwber\Events\Facades\BroadcastEvent;
 
 class BroadcastEventServiceProvider extends ServiceProvider
 {
+    /**
+     * @var array
+     */
     protected $listen = [];
 
+    /**
+     * @var string
+     */
     private $exchangeName = 'events';
 
     /**
@@ -25,7 +31,7 @@ class BroadcastEventServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->commands([
-                ListenCommand::class
+                ListenCommand::class,
             ]);
 
             foreach ($this->listen as $event => $listeners) {
@@ -45,6 +51,9 @@ class BroadcastEventServiceProvider extends ServiceProvider
         $this->registerEventProducer();
     }
 
+    /**
+     * @return mixed
+     */
     protected function registerBroadcastEvents()
     {
         $this->app->singleton('broadcast.events', function ($app) {
@@ -55,13 +64,19 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    protected function registerQueueContext()
+    protected function registerEventProducer()
     {
-        $this->app->singleton(PsrContext::class, function ($app) {
-            return $app['queue']->connection()->getPsrContext();
-        });
+        $this->app->singleton(BroadcastFactory::class);
     }
 
+    protected function registerMessageFactory()
+    {
+        $this->app->singleton(MessageFactory::class);
+    }
+
+    /**
+     * @return mixed
+     */
     protected function registerPsrTopic()
     {
         $this->app->singleton(PsrTopic::class, function ($app) {
@@ -76,13 +91,13 @@ class BroadcastEventServiceProvider extends ServiceProvider
         });
     }
 
-    protected function registerMessageFactory()
+    /**
+     * @return mixed
+     */
+    protected function registerQueueContext()
     {
-        $this->app->singleton(MessageFactory::class);
-    }
-
-    protected function registerEventProducer()
-    {
-        $this->app->singleton(BroadcastFactory::class);
+        $this->app->singleton(PsrContext::class, function ($app) {
+            return $app['queue']->connection()->getPsrContext();
+        });
     }
 }

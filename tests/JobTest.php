@@ -1,19 +1,34 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Seivad\Events\Tests;
 
-use Illuminate\Container\Container;
-use Interop\Queue\PsrConsumer;
+use Mockery as m;
+use Seivad\Events\Job;
 use Interop\Queue\PsrContext;
 use Interop\Queue\PsrMessage;
-use Mockery as m;
-use Nuwber\Events\Job;
+use Interop\Queue\PsrConsumer;
+use Illuminate\Container\Container;
 
 class JobTest extends TestCase
 {
-    private $job;
+    /**
+     * @var string
+     */
     private $connectionName = 'interop';
+
+    /**
+     * @var string
+     */
     private $event = 'event.called';
+
+    /**
+     * @var mixed
+     */
+    private $job;
+
+    /**
+     * @var string
+     */
     private $listenerClass = 'ListenerClass';
 
     public function setUp()
@@ -45,9 +60,8 @@ class JobTest extends TestCase
 
     public function testGetName()
     {
-        $expectedMessage =  "$this->connectionName: $this->event:$this->listenerClass";
+        $expectedMessage = "$this->connectionName: $this->event:$this->listenerClass";
 
         self::assertEquals($expectedMessage, $this->job->getName());
     }
-
 }

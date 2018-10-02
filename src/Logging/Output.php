@@ -1,13 +1,12 @@
 <?php
 
-namespace Nuwber\Events\Logging;
+namespace Seivad\Events\Logging;
 
+use Seivad\Events\Job;
 use Illuminate\Support\Carbon;
-use Nuwber\Events\Job;
 
 class Output extends Writer
 {
-
     /**
      * @var \Illuminate\Contracts\Foundation\Application
      */
@@ -18,6 +17,10 @@ class Output extends Writer
      */
     protected $output;
 
+    /**
+     * @param $laravel
+     * @param $output
+     */
     public function __construct($laravel, $output)
     {
         $this->laravel = $laravel;
@@ -32,6 +35,21 @@ class Output extends Writer
         $status = $this->getStatus($event);
 
         $this->writeStatus($event->job, $status, $this->getType($status));
+    }
+
+    /**
+     * @param $status
+     */
+    protected function getType($status)
+    {
+        switch ($status) {
+            case self::STATUS_PROCESSED:
+                return 'info';
+            case self::STATUS_FAILED:
+                return 'error';
+            default:
+                return 'comment';
+        }
     }
 
     /**
@@ -50,17 +68,5 @@ class Output extends Writer
             str_pad("{$status}:", 11),
             $listener->resolveName()
         ));
-    }
-
-    protected function getType($status)
-    {
-        switch ($status) {
-            case self::STATUS_PROCESSED:
-                return 'info';
-            case self::STATUS_FAILED:
-                return 'error';
-            default:
-                return 'comment';
-        }
     }
 }

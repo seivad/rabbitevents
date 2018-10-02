@@ -1,6 +1,6 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Seivad\Events;
 
 use Illuminate\Support\Str;
 use Illuminate\Events\Dispatcher as BaseDispatcher;
@@ -21,13 +21,26 @@ class Dispatcher extends BaseDispatcher
      */
     public function listen($events, $listener)
     {
-        foreach ((array)$events as $event) {
+        foreach ((array) $events as $event) {
             if (Str::contains($event, '*')) {
                 $this->setupWildcardListen($event, $listener);
             } else {
                 $this->listeners[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener);
             }
         }
+    }
+
+    /**
+     * @param $listener
+     * @return mixed
+     */
+    protected function getListenerClass($listener)
+    {
+        if ($listener instanceof \Closure) {
+            return \Closure::class;
+        }
+
+        return $listener;
     }
 
     /**
@@ -40,14 +53,5 @@ class Dispatcher extends BaseDispatcher
     protected function setupWildcardListen($event, $listener)
     {
         $this->wildcards[$event][$this->getListenerClass($listener)][] = $this->makeListener($listener, true);
-    }
-
-    protected function getListenerClass($listener)
-    {
-        if ($listener instanceof \Closure) {
-            return \Closure::class;
-        }
-
-        return $listener;
     }
 }

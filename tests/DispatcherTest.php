@@ -1,47 +1,36 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Seivad\Events\Tests;
 
-use Nuwber\Events\Dispatcher;
-use PHPUnit\Framework\Assert;
+use Seivad\Events\Dispatcher;
 use PHPUnit\Framework\TestCase;
 
 class DispatcherTest extends TestCase
 {
+    /**
+     * @var array
+     */
     private $listen = [
         'item.created' => [
             'Listeners/Class1',
             'Listeners/Class2',
         ],
         'item.updated' => [
-            'Listeners/Class3'
+            'Listeners/Class3',
         ],
         'item.*' => [
-            'Listeners/Class4'
-        ]
+            'Listeners/Class4',
+        ],
     ];
-
-    public function testGetEvents()
-    {
-        $events = array_keys($this->listen);
-
-        self::assertEquals($events, $this->setupDispatcher()->getEvents());
-    }
-
-    public function testListen()
-    {
-        $dispatcher = new Dispatcher();
-        $dispatcher->listen('item.event', function() {});
-
-        self::assertTrue($dispatcher->hasListeners('item.event'));
-    }
 
     public function testAddedClosureListeners()
     {
         $dispatcher = new Dispatcher();
 
-        $dispatcher->listen('item.event', function() {});
-        $dispatcher->listen('item.event', function() {});
+        $dispatcher->listen('item.event', function () {
+        });
+        $dispatcher->listen('item.event', function () {
+        });
 
         $listeners = $dispatcher->getListeners('item.event');
 
@@ -59,8 +48,23 @@ class DispatcherTest extends TestCase
 
         self::assertCount(1, $listeners);
 
-
         self::assertEquals(['Listeners/Class4'], array_keys($listeners));
+    }
+
+    public function testGetEvents()
+    {
+        $events = array_keys($this->listen);
+
+        self::assertEquals($events, $this->setupDispatcher()->getEvents());
+    }
+
+    public function testListen()
+    {
+        $dispatcher = new Dispatcher();
+        $dispatcher->listen('item.event', function () {
+        });
+
+        self::assertTrue($dispatcher->hasListeners('item.event'));
     }
 
     public function testListenersAddedWithNameAsKey()
@@ -74,6 +78,9 @@ class DispatcherTest extends TestCase
         self::assertEquals(['Listeners/Class1', 'Listeners/Class2', 'Listeners/Class4'], array_keys($listeners));
     }
 
+    /**
+     * @return mixed
+     */
     private function setupDispatcher()
     {
         $dispatcher = new Dispatcher();

@@ -1,11 +1,11 @@
 <?php
 
-namespace Nuwber\Events;
+namespace Seivad\Events;
 
-use Interop\Amqp\AmqpContext;
 use Interop\Amqp\AmqpTopic;
-use Interop\Queue\PsrContext;
 use Interop\Queue\PsrTopic;
+use Interop\Amqp\AmqpContext;
+use Interop\Queue\PsrContext;
 
 class MessageFactory
 {
@@ -13,11 +13,16 @@ class MessageFactory
      * @var AmqpContext
      */
     private $context;
+
     /**
      * @var AmqpTopic
      */
     private $topic;
 
+    /**
+     * @param PsrContext $context
+     * @param PsrTopic $topic
+     */
     public function __construct(PsrContext $context, PsrTopic $topic)
     {
         $this->context = $context;

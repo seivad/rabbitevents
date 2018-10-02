@@ -1,37 +1,64 @@
 <?php
 
-namespace Nuwber\Events\Tests;
+namespace Seivad\Events\Tests;
 
+use Mockery as m;
+use Enqueue\AmqpLib\Buffer;
+use Interop\Queue\PsrContext;
+use PHPUnit\Framework\Assert;
+use Seivad\Events\Dispatcher;
+use Interop\Queue\PsrConsumer;
 use Enqueue\AmqpLib\AmqpConsumer;
 use Enqueue\AmqpLib\AmqpProducer;
-use Enqueue\AmqpLib\Buffer;
+use Interop\Amqp\Impl\AmqpMessage;
 use Illuminate\Container\Container;
+use PhpAmqpLib\Channel\AMQPChannel;
+use Seivad\Events\MessageProcessor;
+use Seivad\Events\ProcessingOptions;
+use Seivad\Events\Exceptions\FailedException;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Queue\Events\JobExceptionOccurred;
-use Interop\Amqp\Impl\AmqpMessage;
-use Interop\Queue\PsrConsumer;
-use Interop\Queue\PsrContext;
-use Mockery as m;
-use Nuwber\Events\Dispatcher;
-use Nuwber\Events\Exceptions\FailedException;
-use Nuwber\Events\MessageProcessor;
-use Nuwber\Events\ProcessingOptions;
-use PhpAmqpLib\Channel\AMQPChannel;
-use PHPUnit\Framework\Assert;
 
 class MessageProcessorTest extends TestCase
 {
-    private $payload;
-    private $options;
-    private $event = 'item.event';
-    private $listeners;
+    /**
+     * @var mixed
+     */
     private $broadcastEvents;
-    private $data;
+
+    /**
+     * @var mixed
+     */
     private $context;
+
+    /**
+     * @var mixed
+     */
+    private $data;
+
+    /**
+     * @var string
+     */
+    private $event = 'item.event';
+
+    /**
+     * @var mixed
+     */
+    private $listeners;
+
+    /**
+     * @var mixed
+     */
+    private $options;
+
+    /**
+     * @var mixed
+     */
+    private $payload;
 
     public function setUp()
     {
-        $this->data = json_encode(['id' => 1,]);
+        $this->data = json_encode(['id' => 1]);
 
         $this->payload = new AmqpMessage($this->data);
         $this->payload->setRoutingKey($this->event);
@@ -45,13 +72,13 @@ class MessageProcessorTest extends TestCase
         $this->options = new ProcessingOptions();
 
         $callback = function ($event, $payload) {
-            return "Event: $event, Payload: " . json_encode($payload);
+            return "Event: $event, Payload: ".json_encode($payload);
         };
 
         $this->listeners = [
             'ListenerClassName' => $callback,
             'ListenerClassName1' => $callback,
-            'ListenerClassName2' => $callback
+            'ListenerClassName2' => $callback,
         ];
 
         $this->broadcastEvents = m::mock(Dispatcher::class)->makePartial();
@@ -72,7 +99,7 @@ class MessageProcessorTest extends TestCase
         $this->listeners = [
             'ListenerClass' => [function () use ($exception) {
                 throw $exception;
-            }]
+            }],
         ];
 
         $broadcastEvents = m::spy(Dispatcher::class)->makePartial();
@@ -95,6 +122,23 @@ class MessageProcessorTest extends TestCase
         $this->assertNull($result);
     }
 
+    /**
+     * @return PsrConsumer
+     */
+    private function createConsumer()
+    {
+        $queue = new \Interop\Amqp\Impl\AmqpQueue('interop');
+        $channel = m::mock(AMQPChannel::class)->makePartial();
+        $channel->shouldReceive('basic_ack');
+
+        return new AmqpConsumer($channel, $queue, new Buffer(), 'basic_get');
+    }
+
+    /**
+     * @param $broadcastEvents
+     * @param null $events
+     * @param null $exceptionHandler
+     */
     private function getProcessor($broadcastEvents = null, $events = null, $exceptionHandler = null)
     {
         $broadcastEvents = $broadcastEvents ?: $this->broadcastEvents;
@@ -122,17 +166,5 @@ class MessageProcessorTest extends TestCase
             'interop',
             $exceptionHandler
         );
-    }
-
-    /**
-     * @return PsrConsumer
-     */
-    private function createConsumer()
-    {
-        $queue = new \Interop\Amqp\Impl\AmqpQueue('interop');
-        $channel = m::mock(AMQPChannel::class)->makePartial();
-        $channel->shouldReceive('basic_ack');
-
-        return new AmqpConsumer($channel, $queue, new Buffer(), 'basic_get');
     }
 }

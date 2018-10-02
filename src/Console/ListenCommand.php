@@ -1,23 +1,35 @@
 <?php
 
-namespace Nuwber\Events\Console;
+namespace Seivad\Events\Console;
 
+use Interop\Queue\PsrContext;
+use Interop\Queue\PsrConsumer;
 use Illuminate\Console\Command;
-use Illuminate\Contracts\Debug\ExceptionHandler;
+use Seivad\Events\ConsumerFactory;
+use Seivad\Events\MessageProcessor;
+use Seivad\Events\ProcessingOptions;
 use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
-use Interop\Queue\PsrConsumer;
-use Interop\Queue\PsrContext;
-use Nuwber\Events\ConsumerFactory;
-use Nuwber\Events\Logging\Output as OutputWriter;
-use Nuwber\Events\Logging\General as GeneralWriter;
-use Nuwber\Events\MessageProcessor;
-use Nuwber\Events\ProcessingOptions;
 use PhpAmqpLib\Exception\AMQPRuntimeException;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Seivad\Events\Logging\Output as OutputWriter;
+use Seivad\Events\Logging\General as GeneralWriter;
 
 class ListenCommand extends Command
 {
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Listen for system events thrown from other services';
+
+    /**
+     * @var array
+     */
+    protected $logWriters = [];
+
     /**
      * The name and signature of the console command.
      *
@@ -30,23 +42,11 @@ class ListenCommand extends Command
                             {--quiet: No console output}';
 
     /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Listen for system events thrown from other services';
-
-    /**
      * Indicates if the listener should exit.
      *
      * @var bool
      */
     private $shouldQuit;
-
-    /**
-     * @var array
-     */
-    protected $logWriters = [];
 
     /**
      * Execute the console command.
@@ -76,6 +76,37 @@ class ListenCommand extends Command
     }
 
     /**
+     * @param ProcessingOptions $options
+     * @return MessageProcessor
+     */
+    protected function createProcessor(ProcessingOptions $options)
+    {
+        return new MessageProcessor(
+            $this->laravel,
+            $this->laravel->make(PsrContext::class),
+            $this->laravel->make('events'),
+            $this->laravel->make('broadcast.events'),
+            $options,
+            $this->laravel->make('queue')->getConnectionName(),
+            $this->laravel->make(ExceptionHandler::class)
+        );
+    }
+
+    /**
+     * Gather all of the queue worker options as a single object.
+     *
+     * @return ProcessingOptions
+     */
+    protected function gatherProcessingOptions()
+    {
+        return new ProcessingOptions(
+            $this->option('memory'),
+            $this->option('timeout'),
+            $this->option('tries')
+        );
+    }
+
+    /**
      * Receive next message from queuer
      *
      * @param PsrConsumer $consumer
@@ -95,48 +126,6 @@ class ListenCommand extends Command
 
             $this->stopListeningIfLostConnection($e);
         }
-    }
-
-    /**
-     * @param ProcessingOptions $options
-     * @return MessageProcessor
-     */
-    protected function createProcessor(ProcessingOptions $options)
-    {
-        return new MessageProcessor(
-            $this->laravel,
-            $this->laravel->make(PsrContext::class),
-            $this->laravel->make('events'),
-            $this->laravel->make('broadcast.events'),
-            $options,
-            $this->laravel->make('queue')->getConnectionName(),
-            $this->laravel->make(ExceptionHandler::class)
-        );
-    }
-
-    /**
-     * @return PsrConsumer
-     */
-    private function makeConsumer()
-    {
-        return $this->laravel->make(ConsumerFactory::class)
-            ->make(
-                $this->laravel->make('broadcast.events')->getEvents()
-            );
-    }
-
-    /**
-     * Gather all of the queue worker options as a single object.
-     *
-     * @return ProcessingOptions
-     */
-    protected function gatherProcessingOptions()
-    {
-        return new ProcessingOptions(
-            $this->option('memory'),
-            $this->option('timeout'),
-            $this->option('tries')
-        );
     }
 
     /**
@@ -211,11 +200,25 @@ class ListenCommand extends Command
         }
     }
 
+    /**
+     * @param $exception
+     */
     protected function stopListeningIfLostConnection($exception)
     {
         if ($exception instanceof AMQPRuntimeException) {
             $this->shouldQuit = true;
         }
+    }
+
+    /**
+     * @return PsrConsumer
+     */
+    private function makeConsumer()
+    {
+        return $this->laravel->make(ConsumerFactory::class)
+            ->make(
+                $this->laravel->make('broadcast.events')->getEvents()
+            );
     }
 
     private function registerLogWriters()
