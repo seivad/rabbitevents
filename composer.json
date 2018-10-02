@@ -32,7 +32,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Seivad\\Events\\": "src/"
+      "Nuwber\\Events\\": "src/"
     },
     "files": [
       "src/helpers.php"
@@ -40,7 +40,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Seivad\\Events\\Tests\\": "tests/"
+      "Nuwber\\Events\\Tests\\": "tests/"
     }
   },
   "extra": {
